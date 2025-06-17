@@ -1,0 +1,28 @@
+Ketergantungan dan file build
+node_modules
+build
+dist
+
+File konfigurasi lokal dan rahasia
+.env
+serviceAccountKey.json
+
+Log
+.log
+npm-debug.log
+yarn-debug.log*
+yarn-error.log*
+
+Direktori sistem operasi
+.DS_Store
+Thumbs.db
+._*
+
+Direktori Editor Kode
+.vscode/
+.idea/
+*.suo
+.ntvs
+*.njsproj
+*.sln
+*.swp
