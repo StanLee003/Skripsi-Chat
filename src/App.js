@@ -528,7 +528,15 @@ const AdminPage = ({ currentUser, navigateToChat }) => {
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
-      const token = await currentUser.getIdToken();
+      // 1. Dapatkan pengguna yang sedang aktif langsung dari instance auth
+      const currentFirebaseUser = auth.currentUser;
+
+      if (!currentFirebaseUser) {
+        throw new Error("Pengguna tidak terautentikasi.");
+      }
+      
+      // 2. Gunakan objek tersebut untuk mendapatkan token
+      const token = await currentFirebaseUser.getIdToken();
       const response = await axios.get(`${BACKEND_URL}/api/admin/users`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -538,7 +546,7 @@ const AdminPage = ({ currentUser, navigateToChat }) => {
     } finally {
       setLoading(false);
     }
-  }, [currentUser]);
+  }, []);
 
   useEffect(() => {
     fetchUsers();
