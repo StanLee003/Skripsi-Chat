@@ -11,14 +11,16 @@ import { io } from "socket.io-client";
 import { Send, LogOut, Menu, Search, UserPlus, X, Paperclip, Smile, Settings, Camera, ShieldCheck } from 'lucide-react';
 
 // --- Konfigurasi ---
+// CATATAN: Kunci API ditulis langsung di sini untuk kemudahan debugging.
+// Untuk produksi, sangat disarankan menggunakan file .env untuk keamanan.
 const firebaseConfig = {
-    apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
-    authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
-    projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
-    storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
-    appId: process.env.REACT_APP_FIREBASE_APP_ID,
-    measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID
+    apiKey: "AIzaSyCc81Bx4p4CWkQrLSYKZNZEMHsR3RODByg",
+    authDomain: "node-firebase-chat-37719.firebaseapp.com",
+    projectId: "node-firebase-chat-37719",
+    storageBucket: "node-firebase-chat-37719.appspot.com",
+    messagingSenderId: "1010867386114",
+    appId: "1:1010867386114:web:d30cd98a1ef81316cf741b",
+    measurementId: "G-SGPJQYKKVD"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -268,7 +270,7 @@ const InputField = ({ label, type, value, onChange, placeholder, required }) => 
 
 const UserAvatar = ({ user, size = 'large' }) => {
     const sizeClasses = size === 'large' ? 'w-12 h-12' : 'w-10 h-10';
-    const initial = user.displayName?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase();
+    const initial = user.displayName?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase() || '?';
 
     if (user.photoURL) {
         return <img src={user.photoURL} alt={user.displayName} className={`${sizeClasses} rounded-full object-cover bg-gray-700`} />;
@@ -336,8 +338,8 @@ const ChatWindow = ({ chatPartner, messages, currentUser, newMessage, setNewMess
                         <p className="text-gray-400">Memuat riwayat percakapan...</p>
                     </div>
                 ) : (
-                    <div className="flex flex-col space-y-2">
-                        {messages.map((msg, index) => <MessageBubble key={index} message={msg} isSender={msg.senderId === currentUser.uid} />)}
+                    <div className="flex flex-col space-y-4">
+                        {messages.map((msg, index) => <MessageBubble key={msg.id || index} message={msg} isSender={msg.senderId === currentUser.uid} />)}
                         <div ref={messagesEndRef} />
                     </div>
                 )}
@@ -354,40 +356,55 @@ const ChatWindow = ({ chatPartner, messages, currentUser, newMessage, setNewMess
     );
 };
 
+// [PEMBARUAN] Komponen MessageBubble diperbarui untuk tampilan dan logika yang lebih baik
 const MessageBubble = ({ message, isSender }) => {
-    const bubbleClasses = isSender ? "bg-indigo-600 text-white rounded-lg rounded-br-none" : "bg-gray-700 text-gray-200 rounded-lg rounded-bl-none";
-    const containerClasses = isSender ? "flex justify-end" : "flex justify-start";
-
-    const mainText = message.translatedText || message.text || "";
-    const originalText = message.originalText || (isSender ? "" : message.text);
-
-    let formattedTime = '';
-    if (message.timestamp) {
-        let date;
-        if (typeof message.timestamp.seconds === 'number') {
-            date = new Date(message.timestamp.seconds * 1000);
-        } else {
-            date = new Date(message.timestamp);
+    const formatTimestamp = (ts) => {
+        if (!ts) return '';
+        try {
+            if (ts && typeof ts.seconds === 'number') {
+                return new Date(ts.seconds * 1000).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+            }
+            const date = new Date(ts);
+            if (!isNaN(date.getTime())) {
+                return date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+            }
+        } catch (error) {
+            console.error("Gagal memformat timestamp:", error, ts);
         }
-        if (!isNaN(date.getTime())) {
-            formattedTime = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        }
-    }
+        return '';
+    };
+    
+    const formattedTime = formatTimestamp(message.timestamp);
+    const mainText = message.translatedText || message.originalText || message.text;
+    const subText = !isSender && message.originalText && message.translatedText && message.originalText !== message.translatedText
+        ? message.originalText
+        : null;
+
+    if (!mainText) return null;
 
     return (
-        <div className={containerClasses}>
-            <div className={`max-w-xs md:max-w-md px-3 py-2 ${bubbleClasses}`}>
-                <p className="text-sm leading-snug">{mainText}</p>
-                {!isSender && originalText && originalText !== mainText && (
-                    <p className="text-xs text-gray-400 mt-2 pt-1 border-t border-white/20 italic">
-                        {originalText}
+        <div className={`w-full flex ${isSender ? 'justify-end' : 'justify-start'}`}>
+            <div className="flex flex-col" style={{ maxWidth: '80%' }}>
+                <div className={`px-4 py-2 rounded-lg text-white shadow-md ${isSender ? 'bg-indigo-600 rounded-l-xl rounded-tr-xl' : 'bg-gray-700 rounded-r-xl rounded-tl-xl'}`}>
+                    <p className="text-sm" style={{ whiteSpace: 'pre-wrap', wordWrap: 'break-word' }}>
+                        {mainText}
                     </p>
+                    {subText && (
+                        <p className="text-xs text-indigo-200 mt-2 pt-2 border-t border-white/20 italic opacity-80">
+                            {subText}
+                        </p>
+                    )}
+                </div>
+                {formattedTime && (
+                    <div className={`text-xs text-gray-500 mt-1 px-1 ${isSender ? 'text-right' : 'text-left'}`}>
+                        {formattedTime}
+                    </div>
                 )}
-                <div className="text-xs text-white/60 mt-1 text-right">{formattedTime}</div>
             </div>
         </div>
     );
 };
+
 
 const WelcomeScreen = () => (
     <div className="hidden md:flex flex-1 flex-col items-center justify-center text-center p-4 bg-gray-900">
@@ -445,7 +462,6 @@ const AddContactModal = ({ currentUser, closeModal, onContactAdded }) => {
     );
 };
 
-// --- MODAL EDIT PROFIL (DIPERBARUI) ---
 const EditProfileModal = ({ currentUser, closeModal, onProfileUpdate }) => {
     const [displayName, setDisplayName] = useState(currentUser.displayName || '');
     const [languagePreference, setLanguagePreference] = useState(currentUser.languagePreference || 'en');
@@ -460,7 +476,6 @@ const EditProfileModal = ({ currentUser, closeModal, onProfileUpdate }) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
             setSelectedFile(file);
-            // Membuat URL sementara untuk preview
             setPreview(URL.createObjectURL(file));
         }
     };
@@ -473,7 +488,6 @@ const EditProfileModal = ({ currentUser, closeModal, onProfileUpdate }) => {
 
         try {
             let photoURL = currentUser.photoURL;
-            // Hanya upload jika ada file baru yang dipilih
             if (selectedFile) {
                 const formData = new FormData();
                 formData.append('avatar', selectedFile);
@@ -483,15 +497,14 @@ const EditProfileModal = ({ currentUser, closeModal, onProfileUpdate }) => {
                 photoURL = res.data.photoURL;
             }
 
-            // Update data profil lainnya
             await axios.put(`${BACKEND_URL}/api/users/${currentUser.uid}`, { 
                 displayName, 
                 languagePreference,
-                photoURL // kirim URL baru atau yang lama
+                photoURL
             });
 
             setSuccess(true);
-            onProfileUpdate(); // Refresh data pengguna di App.js
+            onProfileUpdate();
             setTimeout(() => closeModal(), 1500);
 
         } catch (err) {
@@ -501,7 +514,6 @@ const EditProfileModal = ({ currentUser, closeModal, onProfileUpdate }) => {
         }
     };
     
-    // Fallback jika tidak ada preview dan displayName kosong
     const fallbackAvatar = `https://ui-avatars.com/api/?name=${displayName || currentUser.email}&background=random&color=fff`;
 
     return (
@@ -515,7 +527,6 @@ const EditProfileModal = ({ currentUser, closeModal, onProfileUpdate }) => {
                     <div className="flex flex-col items-center">
                         <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden"/>
                         <div className="relative cursor-pointer group" onClick={() => fileInputRef.current.click()}>
-                            {/* Logika render gambar yang disempurnakan */}
                             <img src={preview || fallbackAvatar} alt="Preview" className="w-24 h-24 rounded-full object-cover bg-gray-700"/>
                             <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
                                 <Camera className="h-8 w-8 text-white"/>
@@ -548,8 +559,6 @@ const EditProfileModal = ({ currentUser, closeModal, onProfileUpdate }) => {
     );
 };
 
-
-// --- BAGIAN INI TELAH DIPERBARUI ---
 const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, children }) => {
     if (!isOpen) return null;
 
