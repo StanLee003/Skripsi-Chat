@@ -11,6 +11,7 @@ const initializeSocket = require('./config/socket');
 const authRoutes = require('./routes/authRoutes');
 const userRoutes =require('./routes/userRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const messageRoutes = require('./routes/meesageRoutes');
 
 // Inisialisasi Aplikasi
 const app = express();
@@ -35,6 +36,7 @@ initializeSocket(io);
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/messages', messageRoutes);
 
 
 // Menjalankan Server
